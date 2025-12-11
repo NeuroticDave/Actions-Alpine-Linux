@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   watch:
     types: started
 jobs:
@@ -100,7 +101,7 @@ jobs:
 
     strategy:
       matrix:
-        CPU: [rk3328, rk3528, rk3399, rk3566, rk3568, rk3576, rk3588]
+        CPU: [rk3328, rk3576]
     steps:
     - name: Checkout
       uses: actions/checkout@main
@@ -144,33 +145,17 @@ jobs:
         rk3328)
           BRANCH=kernel-6.6.y
           KERNEL_VARIANT=mainline
-          ;;
-        rk3528)
-          BRANCH=kernel-6.1.y
-          KERNEL_VARIANT=vendor
-          ;;
-        rk3399)
-          BRANCH=kernel-6.6.y
-          KERNEL_VARIANT=mainline
-          ;;
-        rk3568)
-          BRANCH=kernel-6.1.y
-          KERNEL_VARIANT=vendor
-          ;;
-        rk3566)
-          BRANCH=kernel-6.1.y
-          KERNEL_VARIANT=vendor
+          KERNEL_BRANCH=nanopi-r2-v6.6.y
+          DEFCONFIG=nanopi-r2_linux_defconfig
           ;;
         rk3576)
           BRANCH=kernel-6.1.y
           KERNEL_VARIANT=vendor
-          ;;
-        rk3588)
-          BRANCH=kernel-6.1.y
-          KERNEL_VARIANT=vendor
+          KERNEL_BRANCH=nanopi6-v6.1.y
+          DEFCONFIG=nanopi5_linux_defconfig
           ;;
         *)
-          echo "unknow cpu"
+          echo "unknown cpu"
           exit 1
           ;;
         esac
@@ -182,7 +167,7 @@ jobs:
         fi
 
         cd sd-fuse
-        sudo -u root bash -c '
+        sudo -u root BRANCH=${BRANCH} KERNEL_BRANCH=${KERNEL_BRANCH} DEFCONFIG=${DEFCONFIG} bash -c '
           OS_DIR=alpine-linux-arm64
           mkdir ${OS_DIR}
 
@@ -198,6 +183,14 @@ jobs:
 
           # build uboot
           UBOOT_SRC=uboot ./build-uboot.sh ${OS_DIR}
+
+          # enable zstd compression support in kernel for zram
+          if [ ! -d kernel ]; then
+            git clone https://github.com/friendlyarm/kernel-rockchip --depth 1 -b ${KERNEL_BRANCH} kernel
+          fi
+          echo "CONFIG_CRYPTO_ZSTD=m" >> kernel/arch/arm64/configs/${DEFCONFIG}
+          echo "CONFIG_ZRAM_DEF_COMP_ZSTD=y" >> kernel/arch/arm64/configs/${DEFCONFIG}
+          echo "CONFIG_ZRAM_DEF_COMP=\"zstd\"" >> kernel/arch/arm64/configs/${DEFCONFIG}
 
           # build kernel
           DISABLE_MKIMG=1 KERNEL_SRC=kernel ./build-kernel.sh ${OS_DIR}
@@ -216,16 +209,10 @@ jobs:
           # build sd image
           FILENAME_SD=${{ matrix.CPU }}-sd-alpine-linux-arm64-$(date +%Y-%m-%d).img
           echo "##[set-output name=img_filename_sd;]$FILENAME_SD"
+          cp prebuilt/parameter-plain.txt ${OS_DIR}/parameter.txt
+          cp prebuilt/dtbo-plain.img ${OS_DIR}/dtbo.img 
           ./mk-sd-image.sh ${OS_DIR} ${FILENAME_SD}
           mv out/${FILENAME_SD} ../../artifact/
-
-          # build sd-to-emmc image
-          FILENAME_SD2EMMC=${{ matrix.CPU }}-eflasher-alpine-linux-arm64-$(date +%Y-%m-%d).img
-          echo "##[set-output name=img_filename_sd2emmc;]$FILENAME_SD2EMMC"
-          wget http://112.124.9.243/dvdfiles/${{ matrix.CPU }}/images-for-eflasher/emmc-flasher-images.tgz
-          tar xzf emmc-flasher-images.tgz
-          RAW_SIZE_MB=8000 ./mk-emmc-image.sh ${OS_DIR} filename=${FILENAME_SD2EMMC} autostart=yes
-          mv out/${FILENAME_SD2EMMC} ../../artifact/
 
           # package image-assets-xyz.tgz
           IMAGE_ASSETS_PKG=image-assets-${{ matrix.CPU }}.tgz
@@ -257,13 +244,3 @@ jobs:
         asset_name: ${{ steps.build_sd_image.outputs.img_filename_sd }}.gz
         tag: ${{ needs.prepare_release.outputs.release_tag }}
         overwrite: true
-
-    - name: Upload sd-to-emmc image to release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./artifact/${{ steps.build_sd_image.outputs.img_filename_sd2emmc }}.gz
-        asset_name: ${{ steps.build_sd_image.outputs.img_filename_sd2emmc }}.gz
-        tag: ${{ needs.prepare_release.outputs.release_tag }}
-        overwrite: true
-
