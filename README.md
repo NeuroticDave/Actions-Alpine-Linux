@@ -12,6 +12,8 @@
 ### 定制 Alpine Linux 系统
 - 请参考这里: https://wiki.friendlyelec.com/wiki/index.php/Getting_Started_with_Alpine-Linux/zh
 ### 更新说明
+* 2025/12/31
+    *  更新版本到 v3.23
 * 2025/07/09
     *  增加 NanoPi-R76S 支持
     *  修复 eflasher 固件问题

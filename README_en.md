@@ -12,6 +12,8 @@ Download the image file with “-eflasher-” in the name, use your preferred fl
 ### Customizing Alpine Linux
 - Please refer to this link: https://wiki.friendlyelec.com/wiki/index.php/Getting_Started_with_Alpine-Linux
 ### Release Notes
+* 2025/12/31
+    *  Bump to v3.23
 * 2025/07/09
     *  Add support for NanoPi-R76S
     *  Fix eflasher image issue
