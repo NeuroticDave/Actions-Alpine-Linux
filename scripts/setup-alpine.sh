@@ -45,10 +45,10 @@ net.ipv6.conf.eth1.disable_ipv6 = 1
 ## ZRAM optimization (per Alpine docs)
 # Disable swap readahead (zram is fast, no need for readahead)
 vm.page-cluster = 0
-# Disable memory fragmentation threshold
-vm.extfrag_threshold = 0
-# Aggressive swapping to zram (80 = prefer swap, good for zram)
-vm.swappiness = 80
+# Aggressive swapping to zram (180 = prefer swap, good for zram) https://wiki.archlinux.org/title/Zram
+vm.swappiness = 180
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
 EOL
 
 # configure zram compressed swap
