@@ -47,8 +47,8 @@ net.ipv6.conf.eth1.disable_ipv6 = 1
 vm.page-cluster = 0
 # Disable memory fragmentation threshold
 vm.extfrag_threshold = 0
-# Aggressive swapping to zram (100 = prefer swap, good for zram)
-vm.swappiness = 100
+# Aggressive swapping to zram (80 = prefer swap, good for zram)
+vm.swappiness = 80
 EOL
 
 # configure zram compressed swap
